@@ -5,14 +5,17 @@ let transporter = null;
 const getTransporter = () => {
   if (!transporter) {
     transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: process.env.EMAIL_PORT,
-      secure: false,
+      host: 'smtp.gmail.com',   // Use Gmail directly (no env var needed if fixed)
+      port: 465,                 // SSL port
+      secure: true,              // SSL (important for port 465)
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
       },
-      tls: { rejectUnauthorized: false }
+      tls: { rejectUnauthorized: false },
+      connectionTimeout: 30000,
+      greetingTimeout: 30000,
+      socketTimeout: 30000
     });
   }
   return transporter;
@@ -21,7 +24,7 @@ const getTransporter = () => {
 // For password reset emails
 const sendResetEmail = async (to, name, resetLink) => {
   const transporter = getTransporter();
-  const fromEmail = process.env.EMAIL_USER; // Use Brevo relay user as sender
+  const fromEmail = process.env.EMAIL_USER;
   const html = `
     <h2>Password Reset Request</h2>
     <p>Hello ${name},</p>
@@ -42,7 +45,7 @@ const sendResetEmail = async (to, name, resetLink) => {
 // For task reminders
 const sendTaskReminder = async (to, name, taskTitle, taskDescription, scheduledTime) => {
   const transporter = getTransporter();
-  const fromEmail = process.env.EMAIL_USER; // Use Brevo relay user as sender
+  const fromEmail = process.env.EMAIL_USER;
   const formattedTime = new Date(scheduledTime).toLocaleString();
   
   const html = `
