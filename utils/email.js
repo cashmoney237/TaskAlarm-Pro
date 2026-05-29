@@ -1,38 +1,33 @@
 const nodemailer = require('nodemailer');
+const dns = require('dns');
 
 let transporter = null;
 
 const getTransporter = () => {
   if (!transporter) {
     transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',   // Use Gmail directly (no env var needed if fixed)
-      port: 465,                 // SSL port
-      secure: true,              // SSL (important for port 465)
+      host: 'smtp-relay.brevo.com',
+      port: 587,
+      secure: false,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
       },
       tls: { rejectUnauthorized: false },
-      connectionTimeout: 30000,
-      greetingTimeout: 30000,
-      socketTimeout: 30000
+      // Force IPv4 lookup to avoid IPv6 routing issues on Render
+      lookup: (hostname, callback) => {
+        dns.lookup(hostname, 4, callback);
+      }
     });
   }
   return transporter;
 };
 
-// For password reset emails
 const sendResetEmail = async (to, name, resetLink) => {
   const transporter = getTransporter();
   const fromEmail = process.env.EMAIL_USER;
-  const html = `
-    <h2>Password Reset Request</h2>
-    <p>Hello ${name},</p>
-    <p>Click the link below to reset your password (valid for 1 hour):</p>
-    <a href="${resetLink}">${resetLink}</a>
-    <p>If you didn't request this, ignore this email.</p>
-  `;
-  const text = `Password Reset Request\n\nHello ${name},\n\nClick the link below:\n${resetLink}`;
+  const html = `<h2>Password Reset</h2><p>Hello ${name},</p><p><a href="${resetLink}">Click here</a> to reset your password.</p>`;
+  const text = `Password Reset\n\nHello ${name},\n\nReset link: ${resetLink}`;
   await transporter.sendMail({
     from: `"TaskAlarm Pro" <${fromEmail}>`,
     to,
@@ -42,17 +37,15 @@ const sendResetEmail = async (to, name, resetLink) => {
   });
 };
 
-// For task reminders
 const sendTaskReminder = async (to, name, taskTitle, taskDescription, scheduledTime) => {
   const transporter = getTransporter();
   const fromEmail = process.env.EMAIL_USER;
   const formattedTime = new Date(scheduledTime).toLocaleString();
-  
   const html = `
     <div style="font-family: Arial, sans-serif;">
       <h2>TaskAlarm Pro</h2>
       <p>Hello ${name},</p>
-      <p><strong>It's time to complete your task!</strong></p>
+      <p>🔔 <strong>It's time to complete your task!</strong></p>
       <p><strong>Task:</strong> ${taskTitle}</p>
       <p><strong>Description:</strong> ${taskDescription || 'No description'}</p>
       <p><strong>Scheduled for:</strong> ${formattedTime}</p>
@@ -60,8 +53,7 @@ const sendTaskReminder = async (to, name, taskTitle, taskDescription, scheduledT
       <p>Best regards,<br>TaskAlarm Team</p>
     </div>
   `;
-  const text = `Task Reminder: ${taskTitle}\n\nHello ${name},\n\nIt's time to complete your task.\nTask: ${taskTitle}\nDescription: ${taskDescription || 'None'}\nScheduled: ${formattedTime}`;
-  
+  const text = `Task Reminder: ${taskTitle}\n\nHello ${name},\n\nTime to complete: ${taskTitle}\nDescription: ${taskDescription || 'None'}\nScheduled: ${formattedTime}`;
   try {
     const info = await transporter.sendMail({
       from: `"TaskAlarm Pro" <${fromEmail}>`,
