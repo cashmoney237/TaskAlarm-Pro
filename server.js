@@ -14,7 +14,7 @@ const server = http.createServer(app);
 
 // ✅ HARDCODED your frontend URL (temporary fix)
 const allowedOrigins = [
-  'https://heroic-tiramisu-9b0ea1.netlify.app',
+  'elumba-mike-lawrce.netlify.app',
   'http://localhost:5500'
 ];
 
