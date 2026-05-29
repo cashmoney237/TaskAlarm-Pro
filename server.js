@@ -12,7 +12,7 @@ const setupSocket = require('./sockets');
 const app = express();
 const server = http.createServer(app);
 
-// ✅ ALLOW ALL ORIGINS (temporary fix for domain change)
+// ✅ Allow any origin (temporary fix for domain change)
 app.use(cors({ origin: true, credentials: true }));
 
 app.use(express.json());
