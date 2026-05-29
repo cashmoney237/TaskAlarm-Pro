@@ -12,9 +12,9 @@ const setupSocket = require('./sockets');
 const app = express();
 const server = http.createServer(app);
 
-// ✅ HARDCODED your frontend URL (temporary fix)
+// ✅ Hardcoded CORS for your new Netlify domain
 const allowedOrigins = [
-  'elumba-mike-lawrce.netlify.app',
+  'https://elumba-mike-lawrce.netlify.app',
   'http://localhost:5500'
 ];
 
