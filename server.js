@@ -12,19 +12,14 @@ const setupSocket = require('./sockets');
 const app = express();
 const server = http.createServer(app);
 
-// ✅ Hardcoded CORS for your new Netlify domain
-const allowedOrigins = [
-  'https://elumba-mike-lawrce.netlify.app',
-  'http://localhost:5500'
-];
-
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+// ✅ ALLOW ALL ORIGINS (temporary fix for domain change)
+app.use(cors({ origin: true, credentials: true }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const io = socketio(server, {
-  cors: { origin: allowedOrigins, methods: ['GET', 'POST'], credentials: true }
+  cors: { origin: true, methods: ['GET', 'POST'], credentials: true }
 });
 
 app.use('/api/auth', authRoutes);
