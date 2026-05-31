@@ -101,4 +101,16 @@ router.post('/test-email', async (req, res) => {
   }
 });
 
+// Manual email test endpoint
+router.post('/test-email-manual', async (req, res) => {
+    const { email, name, taskTitle, description } = req.body;
+    if (!email) return res.status(400).json({ error: 'Email required' });
+    try {
+        const result = await sendTaskReminder(email, name || 'Test User', taskTitle || 'Test Task', description || 'This is a test email from TaskAlarm.', new Date());
+        res.json(result);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 module.exports = router;
