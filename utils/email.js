@@ -1,23 +1,18 @@
 const nodemailer = require('nodemailer');
-const dns = require('dns');
 
 let transporter = null;
 
 const getTransporter = () => {
   if (!transporter) {
     transporter = nodemailer.createTransport({
-      host: 'smtp-relay.brevo.com',
-      port: 587,
-      secure: false,
+      host: process.env.EMAIL_HOST,
+      port: process.env.EMAIL_PORT,
+      secure: process.env.EMAIL_PORT == 465, // true for 465, false for 587
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
       },
-      tls: { rejectUnauthorized: false },
-      // Force IPv4 lookup to avoid IPv6 routing issues on Render
-      lookup: (hostname, callback) => {
-        dns.lookup(hostname, 4, callback);
-      }
+      tls: { rejectUnauthorized: false }
     });
   }
   return transporter;
@@ -25,11 +20,10 @@ const getTransporter = () => {
 
 const sendResetEmail = async (to, name, resetLink) => {
   const transporter = getTransporter();
-  const fromEmail = process.env.EMAIL_USER;
   const html = `<h2>Password Reset</h2><p>Hello ${name},</p><p><a href="${resetLink}">Click here</a> to reset your password.</p>`;
   const text = `Password Reset\n\nHello ${name},\n\nReset link: ${resetLink}`;
   await transporter.sendMail({
-    from: `"TaskAlarm Pro" <${fromEmail}>`,
+    from: `"TaskAlarm Pro" <${process.env.EMAIL_USER}>`,
     to,
     subject: 'Reset your TaskAlarm password',
     html,
@@ -39,7 +33,6 @@ const sendResetEmail = async (to, name, resetLink) => {
 
 const sendTaskReminder = async (to, name, taskTitle, taskDescription, scheduledTime) => {
   const transporter = getTransporter();
-  const fromEmail = process.env.EMAIL_USER;
   const formattedTime = new Date(scheduledTime).toLocaleString();
   const html = `
     <div style="font-family: Arial, sans-serif;">
@@ -53,16 +46,16 @@ const sendTaskReminder = async (to, name, taskTitle, taskDescription, scheduledT
       <p>Best regards,<br>TaskAlarm Team</p>
     </div>
   `;
-  const text = `Task Reminder: ${taskTitle}\n\nHello ${name},\n\nTime to complete: ${taskTitle}\nDescription: ${taskDescription || 'None'}\nScheduled: ${formattedTime}`;
+  const text = `Task Reminder: ${taskTitle}\n\nHello ${name},\n\nIt's time to complete your task.\nTask: ${taskTitle}\nDescription: ${taskDescription || 'None'}\nScheduled: ${formattedTime}`;
   try {
     const info = await transporter.sendMail({
-      from: `"TaskAlarm Pro" <${fromEmail}>`,
+      from: `"TaskAlarm Pro" <${process.env.EMAIL_USER}>`,
       to,
       subject: `🔔 Task Reminder: ${taskTitle}`,
       html,
       text
     });
-    console.log(`✅ Email sent to ${to} - ID: ${info.messageId}`);
+    console.log(`✅ Email sent to ${to} - Message ID: ${info.messageId}`);
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error(`❌ Email failed:`, error.message);
