@@ -1,60 +1,68 @@
 const express = require('express');
-const auth = require('../middleware/auth');
 const Task = require('../models/Task');
+const User = require('../models/User');
 const router = express.Router();
 
-router.get('/', auth, async (req, res) => {
-  try {
-    const tasks = await Task.find({ userId: req.userId });
-    res.json(tasks);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// Helper to get the first user ID (for demo)
+async function getDemoUserId() {
+    const user = await User.findOne();
+    if (!user) return null;
+    return user._id;
+}
 
-router.post('/', auth, async (req, res) => {
-  try {
-    const { title, description, scheduledTime } = req.body;
-    const task = new Task({
-      userId: req.userId,
-      title,
-      description,
-      scheduledTime
-    });
-    await task.save();
-    res.status(201).json(task);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.put('/:id', auth, async (req, res) => {
-  try {
-    const allowedUpdates = ['title', 'description', 'scheduledTime', 'isCompleted', 'isMissed', 'alarmTriggered', 'emailSent'];
-    const updates = {};
-    for (const key of allowedUpdates) {
-      if (req.body[key] !== undefined) updates[key] = req.body[key];
+// GET all tasks
+router.get('/', async (req, res) => {
+    try {
+        const userId = await getDemoUserId();
+        if (!userId) return res.json([]);
+        const tasks = await Task.find({ userId });
+        res.json(tasks);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
-    const task = await Task.findOneAndUpdate(
-      { _id: req.params.id, userId: req.userId },
-      updates,
-      { new: true }
-    );
-    if (!task) return res.status(404).json({ error: 'Task not found' });
-    res.json(task);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
 });
 
-router.delete('/:id', auth, async (req, res) => {
-  try {
-    const task = await Task.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-    if (!task) return res.status(404).json({ error: 'Task not found' });
-    res.json({ message: 'Task deleted successfully' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// CREATE task
+router.post('/', async (req, res) => {
+    try {
+        const userId = await getDemoUserId();
+        if (!userId) return res.status(401).json({ error: 'No user found' });
+        const { title, description, scheduledTime } = req.body;
+        const task = new Task({ userId, title, description, scheduledTime });
+        await task.save();
+        res.status(201).json(task);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// UPDATE task
+router.put('/:id', async (req, res) => {
+    try {
+        const userId = await getDemoUserId();
+        if (!userId) return res.status(401).json({ error: 'No user found' });
+        const task = await Task.findOneAndUpdate(
+            { _id: req.params.id, userId },
+            req.body,
+            { new: true }
+        );
+        if (!task) return res.status(404).json({ error: 'Task not found' });
+        res.json(task);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// DELETE task
+router.delete('/:id', async (req, res) => {
+    try {
+        const userId = await getDemoUserId();
+        if (!userId) return res.status(401).json({ error: 'No user found' });
+        await Task.findOneAndDelete({ _id: req.params.id, userId });
+        res.json({ message: 'Task deleted' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
 });
 
 module.exports = router;
